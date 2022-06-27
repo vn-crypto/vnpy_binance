@@ -472,6 +472,8 @@ class BinanceUsdtRestApi(RestClient):
         if self.keep_alive_count < 600:
             return
         self.keep_alive_count = 0
+        self.start_user_stream()
+        return
 
         data: dict = {
             "security": Security.API_KEY
@@ -799,6 +801,7 @@ class BinanceUsdtTradeWebsocketApi(WebsocketClient):
         order_type: OrderType = ORDERTYPE_BINANCES2VT.get(key, None)
         if not order_type:
             return
+        offset = self.gateway.get_order(ord_data["c"]).offset if self.gateway.get_order(ord_data["c"]) else None
 
         order: OrderData = OrderData(
             symbol=ord_data["s"],
@@ -811,7 +814,8 @@ class BinanceUsdtTradeWebsocketApi(WebsocketClient):
             traded=float(ord_data["z"]),
             status=STATUS_BINANCES2VT[ord_data["X"]],
             datetime=generate_datetime(packet["E"]),
-            gateway_name=self.gateway_name
+            gateway_name=self.gateway_name,
+            offset=offset
         )
 
         self.gateway.on_order(order)
@@ -835,6 +839,7 @@ class BinanceUsdtTradeWebsocketApi(WebsocketClient):
             volume=trade_volume,
             datetime=generate_datetime(ord_data["T"]),
             gateway_name=self.gateway_name,
+            offset=offset
         )
         self.gateway.on_trade(trade)
 

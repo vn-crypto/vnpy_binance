@@ -432,6 +432,8 @@ class BinanceSpotRestAPi(RestClient):
         if self.keep_alive_count < 600:
             return
         self.keep_alive_count = 0
+        self.start_user_stream()
+        return
 
         data: dict = {
             "security": Security.API_KEY
@@ -714,6 +716,8 @@ class BinanceSpotTradeWebsocketApi(WebsocketClient):
         else:
             orderid: str = packet["C"]
 
+        offset = self.gateway.get_order(orderid).offset if self.gateway.get_order(orderid) else None
+
         order: OrderData = OrderData(
             symbol=packet["s"].lower(),
             exchange=Exchange.BINANCE,
@@ -725,7 +729,8 @@ class BinanceSpotTradeWebsocketApi(WebsocketClient):
             traded=float(packet["z"]),
             status=STATUS_BINANCE2VT[packet["X"]],
             datetime=generate_datetime(packet["O"]),
-            gateway_name=self.gateway_name
+            gateway_name=self.gateway_name,
+            offset=offset
         )
 
         self.gateway.on_order(order)
@@ -749,6 +754,7 @@ class BinanceSpotTradeWebsocketApi(WebsocketClient):
             volume=trade_volume,
             datetime=generate_datetime(packet["T"]),
             gateway_name=self.gateway_name,
+            offset=offset
         )
         self.gateway.on_trade(trade)
 
